@@ -16,11 +16,20 @@ CLI 自检（Mac）：
 ssh factoros-win "cd /d D:\dev\FactorOS && git log -1 --oneline"
 ```
 
+## 路径速记
+
+| 用途 | Windows | Mac |
+|------|---------|-----|
+| 代码仓 | `D:\dev\FactorOS` | `~/dev/FactorOS` |
+| 数据盘 | `D:\FactorOS_Data` | `/Volumes/FactorOS_Data`（SMB） |
+
+**不要**把 FactorOS clone 进 `D:\FactorOS_Data`。Windows 只适合存储邻域轻/中量活；重型回测 / LLM → `ssh compshare-gpu`。分工见 [WORK_SPLIT.md](./WORK_SPLIT.md)。
+
 ## SMB 数据盘
 
 - 共享：`smb://192.168.1.114/FactorOS_Data` → Windows `D:\FactorOS_Data`
 - Mac 挂载点（已挂时）：`/Volumes/FactorOS_Data`
 - 占位目录：`cache/`、`backtest_results/`、`data/`
-- **未同步**：Mac 侧大体量 `data/`、`backtest_results/`（瘦拷贝策略）；大文件按需拷到本共享
+- **未同步**：Mac 侧大体量 `data/`、`backtest_results/`（瘦拷贝策略）；需要时 rsync **子集到 Windows 数据盘**，勿往 Mac 灌满盘
 
 卸载：`umount /Volumes/FactorOS_Data`（或访达推出）。

@@ -78,9 +78,9 @@ umount ~/mnt/factoros_data
 1. 安装扩展 **Remote - SSH**。
 2. 命令面板：**Remote-SSH: Open SSH Configuration File**，加入与上文相同的 `Host factoros-win`。
 3. **Remote-SSH: Connect to Host…** → `factoros-win`。
-4. 在远程 Windows 上打开文件夹，例如 `D:\FactorOS_Data` 或克隆的 `FactorOS` 子目录。
+4. 在远程 Windows 上打开文件夹：**`D:\dev\FactorOS`**（代码仓）。数据盘是 `D:\FactorOS_Data`，不要当代码根目录打开。
 
-适合：在 Windows 上跑长时间 Python 任务，Mac 只负责编辑与 Git。
+适合：在 Windows 上跑长时间 Python 任务，Mac 只负责轻量编辑与 Remote 控制面。详见 [WORK_SPLIT.md](./WORK_SPLIT.md)。
 
 ## 5. RDP（图形界面排障）
 
@@ -100,21 +100,25 @@ Mac 工作目录建议：
 ~/dev/FactorOS
 ```
 
-Windows 上若需副本：
+Windows **代码仓**（勿 clone 进数据盘）：
 
 ```powershell
-cd D:\FactorOS_Data
+cd D:\dev
 git clone git@github.com:dblahwn/FactorOS.git
+# 数据 / 缓存 / 回测 → D:\FactorOS_Data\{data,cache,backtest_results}
 ```
 
 Windows 需单独生成 SSH 密钥并把 **公钥** 添加到 GitHub；勿复制 Mac 私钥到 Windows。
 
-## 7. 推荐分工
+## 7. 推荐分工（三机）
+
+完整说明见 [WORK_SPLIT.md](./WORK_SPLIT.md)。摘要：
 
 | 任务 | 建议机器 |
 |------|----------|
-| 写代码、commit、小回测 | Mac |
-| 大体积数据、长时间 CPU 回测 | Windows（SSH 或 Remote） |
-| 统一数据路径 | SMB `FactorOS_Data` |
+| Cursor UI、轻量编辑、文档、编排 | Mac（`~/dev/FactorOS`） |
+| 大体量落盘、轻/中量挨数据脚本 | Windows（`D:\FactorOS_Data` + `D:\dev\FactorOS`） |
+| 全历史 / fleet reval / LLM·RFT | Cloud（`ssh compshare-gpu`） |
+| 统一数据路径 | SMB `FactorOS_Data` ↔ `D:\FactorOS_Data`（**不是**代码仓） |
 
-完成 SSH + SMB 后，即可把 Windows 作为 FactorOS 的存储与算力节点使用。
+完成 SSH + SMB 后，即可把 Windows 当作存储节点；**不要**把全部重算迁到家用 Win。

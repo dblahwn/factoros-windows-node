@@ -1,15 +1,16 @@
-# FactorOS Windows 计算节点 — 配置清单
+# FactorOS Windows 存储节点 — 配置清单
 
-本仓库用于在 **Windows 台式机** 上配置 FactorOS 的「存储 + CPU 算力」节点，与 **Mac 开发机** 协同工作。
+本仓库用于在 **Windows 家用台式机** 上配置 FactorOS 的「**磁盘 + 轻/中量脚本**」节点。三机协同见 [WORK_SPLIT.md](./WORK_SPLIT.md)：
 
-| 角色 | 机器 | 网络 | 用户 |
+| 角色 | 机器 | 网络 | 说明 |
 |------|------|------|------|
-| 开发控制台 | Mac | WiFi `192.168.13.105` | `dingbolin` |
-| 算力/数据节点 | Windows | 有线 `192.168.1.114` | （你的 Windows 用户名） |
+| 交互 / 编排 | Mac | WiFi `192.168.13.105` | Cursor UI、轻量编辑；盘/内存紧 |
+| 存储 / 轻脚本 | Windows（`factoros-win`） | 有线 `192.168.1.114` | `D:\FactorOS_Data` + `D:\dev\FactorOS`；**非**主力算力 |
+| 重算力 | Cloud `compshare-gpu` | Mac `~/.ssh/config` | 全历史 / fleet / LLM·RFT |
 
 > **双网段：** Mac 可留在 `192.168.13.x`、Win 在 `192.168.1.x`。以 Mac→Win SSH/SMB 为准；Win ping 不通 Mac 通常是防火墙/ICMP，不阻塞协作。
 
-**FactorOS 主仓库**（在 Mac 上开发）：`git@github.com:dblahwn/FactorOS.git`
+**FactorOS 主仓库**（GitHub 为源码真相）：`git@github.com:dblahwn/FactorOS.git`
 
 ---
 
@@ -59,9 +60,10 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 脚本会尝试：
 
-- 安装/启用 **OpenSSH Server**
-- 创建数据目录（优先 `D:\FactorOS_Data`，否则 `C:\FactorOS_Data`）
-- 将 Mac 开发机的 **SSH 公钥** 写入 `authorized_keys`
+- 安装/启用 **OpenSSH Server**（失败时仍继续写密钥/防火墙，便于 sshd 已存在的机器）
+- 创建数据目录（优先 `D:\FactorOS_Data`，否则 `C:\FactorOS_Data`）及 `data`/`cache`/`backtest_results`
+- 将 Mac 开发机的 **SSH 公钥** 写入 `authorized_keys`（**UTF-8 无 BOM**）
+- 若已装 Git：把 `C:\Program Files\Git\bin`（及 `cmd`）写入 **Machine PATH**，供 Cursor Remote-SSH 找 `bash`
 - 打印 SMB 共享与防火墙的后续步骤
 
 ### 3. 启用远程桌面（RDP）
@@ -93,16 +95,24 @@ Start-Service sshd
 Set-Service -Name sshd -StartupType Automatic
 ```
 
-### 6. 克隆 FactorOS（在 Windows 上，可选）
+### 6. 克隆 FactorOS（代码仓 ≠ 数据盘）
 
-若要在 Windows 上直接拉代码或跑任务，需先配置 GitHub SSH 密钥（**在 Windows 上生成新密钥**，公钥加到 GitHub；**不要把私钥提交到任何仓库**）。
+**路径约定（强制）：**
+
+| 用途 | 路径 |
+|------|------|
+| 代码仓 | `D:\dev\FactorOS` |
+| 数据 / 缓存 / 回测产物 | `D:\FactorOS_Data\{data,cache,backtest_results}` |
+
+**不要**把仓库 clone 进 `D:\FactorOS_Data`。若 Windows 尚无代码树，先配置 GitHub SSH 密钥（**在 Windows 上生成新密钥**，公钥加到 GitHub；**不要把私钥提交到任何仓库**），再：
 
 ```powershell
-cd D:\FactorOS_Data   # 或 C:\FactorOS_Data
+New-Item -ItemType Directory -Force -Path D:\dev | Out-Null
+cd D:\dev
 git clone git@github.com:dblahwn/FactorOS.git
 ```
 
-数据与回测产物建议放在 `FactorOS_Data`，代码在 Mac 为主、Windows 同步按需。
+Mac / Windows 分工见 [WORK_SPLIT.md](./WORK_SPLIT.md)。
 
 ---
 
@@ -111,8 +121,8 @@ git clone git@github.com:dblahwn/FactorOS.git
 Windows 就绪后，在 Mac 上按 [MAC_CONNECT.md](./MAC_CONNECT.md) 配置：
 
 - SSH `~/.ssh/config`
-- SMB 挂载数据盘
-- （可选）Cursor / VS Code Remote SSH
+- SMB 挂载数据盘 `FactorOS_Data`（不是代码仓）
+- （可选）Cursor / VS Code Remote SSH → 打开 `D:\dev\FactorOS`
 
 ---
 
@@ -121,8 +131,11 @@ Windows 就绪后，在 Mac 上按 [MAC_CONNECT.md](./MAC_CONNECT.md) 配置：
 | 文件 | 用途 |
 |------|------|
 | `setup.ps1` | Windows 一键基础配置 |
+| `WORK_SPLIT.md` | Mac ↔ Windows 分工与路径约定 |
 | `NETWORK_FIX.md` | 外网慢 / 链路问题排查 |
 | `MAC_CONNECT.md` | Mac 连接本节点的命令与习惯用法 |
+| `CONNECT.md` | Cursor Remote 速查 |
+| `SHARED_STATUS.md` | 双端进度对齐 |
 
 ---
 
@@ -141,4 +154,4 @@ Windows 就绪后，在 Mac 上按 [MAC_CONNECT.md](./MAC_CONNECT.md) 配置：
 - [ ] SMB：`\\192.168.1.114\FactorOS_Data` 能否在 Mac 访达中打开
 - [ ] 外网：`curl -I https://github.com` 在 Windows 上是否在几秒内返回
 
-完成以上后，即可把 Windows 作为 FactorOS 的大容量存储与长时间 CPU 任务节点使用。
+完成以上后，即可把 Windows 作为 FactorOS 的大容量存储与轻量脚本节点使用；重型回测走 Cloud `compshare-gpu`（见 [WORK_SPLIT.md](./WORK_SPLIT.md)）。

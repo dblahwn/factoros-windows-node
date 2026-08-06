@@ -16,6 +16,64 @@ function Test-IsAdmin {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+function Write-Utf8NoBomFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Content
+    )
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($Path, $Content, $utf8NoBom)
+}
+
+function Ensure-AuthorizedKey {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$PubKey
+    )
+    $parent = Split-Path $Path -Parent
+    if (-not (Test-Path $parent)) { New-Item -ItemType Directory -Force -Path $parent | Out-Null }
+
+    $lines = @()
+    if (Test-Path $Path) {
+        # Strip UTF-8 BOM if present (PS 5.1 Add-Content -Encoding utf8 writes BOM and can break OpenSSH)
+        $raw = [System.IO.File]::ReadAllText($Path)
+        if ($raw.Length -gt 0 -and [int][char]$raw[0] -eq 0xFEFF) {
+            $raw = $raw.Substring(1)
+        }
+        $lines = @($raw -split "`r?`n" | Where-Object { $_ -ne "" })
+    }
+
+    if ($lines -notcontains $PubKey) {
+        $lines += $PubKey
+        Write-Host "已追加公钥到: $Path"
+    } else {
+        Write-Host "公钥已存在: $Path"
+    }
+
+    $body = ($lines -join "`n")
+    if (-not $body.EndsWith("`n")) { $body += "`n" }
+    Write-Utf8NoBomFile -Path $Path -Content $body
+}
+
+function Ensure-MachinePathEntry {
+    param([Parameter(Mandatory = $true)][string]$Entry)
+    $machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+    $parts = $machinePath -split ";" | Where-Object { $_ -ne "" }
+    $exists = $parts | Where-Object { $_.TrimEnd("\") -ieq $Entry.TrimEnd("\") }
+    if (-not $exists) {
+        $newPath = ($parts + $Entry) -join ";"
+        [Environment]::SetEnvironmentVariable("Path", $newPath, "Machine")
+        $env:Path = "$Entry;$env:Path"
+        Write-Host "已写入 Machine PATH: $Entry"
+        return $true
+    }
+    Write-Host "Machine PATH 已含: $Entry"
+    if ($env:Path -notlike "*$Entry*") {
+        $env:Path = "$Entry;$env:Path"
+    }
+    return $false
+}
+
 if (-not (Test-IsAdmin)) {
     Write-Warning "请右键 PowerShell，选择「以管理员身份运行」，再执行本脚本。"
     exit 1
@@ -29,14 +87,24 @@ if (Test-Path "D:\") {
     $dataRoot = "C:\FactorOS_Data"
 }
 New-Item -ItemType Directory -Force -Path $dataRoot | Out-Null
-Write-Host "数据根目录: $dataRoot"
+foreach ($sub in @("data", "cache", "backtest_results")) {
+    New-Item -ItemType Directory -Force -Path (Join-Path $dataRoot $sub) | Out-Null
+}
+Write-Host "数据根目录: $dataRoot （代码仓请放 D:\dev\FactorOS，勿 clone 进本目录）"
 
 Write-Step "安装/启用 OpenSSH Server"
-$sshCapability = Get-WindowsCapability -Online | Where-Object { $_.Name -like "OpenSSH.Server*" }
-if ($sshCapability -and $sshCapability.State -ne "Installed") {
-    Add-WindowsCapability -Online -Name $sshCapability.Name
-} elseif (-not $sshCapability) {
-    Write-Warning "未找到 OpenSSH.Server 可选功能，请通过 设置 -> 应用 -> 可选功能 手动安装 OpenSSH 服务器。"
+try {
+    $sshCapability = Get-WindowsCapability -Online | Where-Object { $_.Name -like "OpenSSH.Server*" }
+    if ($sshCapability -and $sshCapability.State -ne "Installed") {
+        Add-WindowsCapability -Online -Name $sshCapability.Name
+        Write-Host "已安装: $($sshCapability.Name)"
+    } elseif (-not $sshCapability) {
+        Write-Warning "未找到 OpenSSH.Server 可选功能，请通过 设置 -> 应用 -> 可选功能 手动安装 OpenSSH 服务器。"
+    } else {
+        Write-Host "OpenSSH.Server 已安装。"
+    }
+} catch {
+    Write-Warning "Add-WindowsCapability 失败（可忽略若 sshd 已存在）: $($_.Exception.Message)"
 }
 
 $sshdService = Get-Service -Name sshd -ErrorAction SilentlyContinue
@@ -48,7 +116,7 @@ if ($sshdService) {
     Write-Warning "sshd 服务不存在，请确认 OpenSSH Server 已安装。"
 }
 
-Write-Step "配置 Mac 开发机 SSH 公钥"
+Write-Step "配置 Mac 开发机 SSH 公钥（UTF-8 无 BOM）"
 $sshDir = Join-Path $env:ProgramData "ssh"
 if (-not (Test-Path $sshDir)) { New-Item -ItemType Directory -Force -Path $sshDir | Out-Null }
 
@@ -56,16 +124,7 @@ $adminKeys = Join-Path $sshDir "administrators_authorized_keys"
 $authKeys = Join-Path $env:USERPROFILE ".ssh\authorized_keys"
 
 foreach ($path in @($adminKeys, $authKeys)) {
-    $parent = Split-Path $path -Parent
-    if (-not (Test-Path $parent)) { New-Item -ItemType Directory -Force -Path $parent | Out-Null }
-    $content = @()
-    if (Test-Path $path) { $content = Get-Content $path -ErrorAction SilentlyContinue }
-    if ($content -notcontains $MacPubKey) {
-        Add-Content -Path $path -Value $MacPubKey -Encoding utf8
-        Write-Host "已追加公钥到: $path"
-    } else {
-        Write-Host "公钥已存在: $path"
-    }
+    Ensure-AuthorizedKey -Path $path -PubKey $MacPubKey
 }
 
 # OpenSSH on Windows often uses administrators_authorized_keys for admin users
@@ -79,10 +138,32 @@ $existing = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyCont
 if (-not $existing) {
     New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Protocol TCP -LocalPort 22 -Action Allow | Out-Null
     Write-Host "已添加防火墙入站规则: $ruleName"
+} else {
+    Write-Host "防火墙规则已存在: $ruleName"
+}
+
+Write-Step "Git PATH（Cursor Remote-SSH 需要 bash）"
+$gitBin = "C:\Program Files\Git\bin"
+$gitCmd = "C:\Program Files\Git\cmd"
+if (Test-Path (Join-Path $gitBin "bash.exe")) {
+    Ensure-MachinePathEntry -Entry $gitBin | Out-Null
+    if (Test-Path $gitCmd) { Ensure-MachinePathEntry -Entry $gitCmd | Out-Null }
+    $bashVer = & bash --version 2>$null | Select-Object -First 1
+    if ($bashVer) {
+        Write-Host "bash 可用: $bashVer"
+    } else {
+        Write-Warning "PATH 已写入但本会话 bash 仍不可用；请新开 PowerShell / 重登后再测。"
+    }
+} else {
+    Write-Warning "未找到 $gitBin\bash.exe。请先: winget install Git.Git，再重跑本脚本。"
 }
 
 Write-Step "SMB 共享提示（需手动确认权限）"
 Write-Host @"
+
+路径约定：
+  代码仓: D:\dev\FactorOS
+  数据盘: $dataRoot  （data / cache / backtest_results）
 
 请在资源管理器中：
   1. 右键 $dataRoot -> 属性 -> 共享 -> 高级共享
@@ -103,6 +184,7 @@ Write-Host @"
 网络仍慢请先阅读本仓库 NETWORK_FIX.md
 
 Mac 连接说明见 MAC_CONNECT.md
+三机分工（Mac 编排 / Win 磁盘 / Cloud 算力）见 WORK_SPLIT.md
 
 本机 IP（IPv4 局域网）:
 "@

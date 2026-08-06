@@ -57,9 +57,11 @@ Mac 经 SMB：`/Volumes/FactorOS_Data/jobs/...`（需已挂载）。
 | 空闲 2h | Windows **看门狗自动关机** |
 | 立刻关机 | Mac：`./mac/win_ctl.sh shutdown` |
 
+**关机后再测 WOL（全自动）：** `./mac/wol_selftest.sh`（关→等死→唤醒→验 SSH，不用你盯）。
+
 重活仍走 Cloud（`compshare-gpu`），不要往 Windows inbox 塞重型 fleet/LLM。
 
 ## 相关脚本
 
 - Windows：`watchdog.ps1` / `install_watchdog.ps1` / `worker_once.ps1`
-- Mac：`mac/win_ctl.sh`
+- Mac：`mac/win_ctl.sh`、`mac/wol_selftest.sh`

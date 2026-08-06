@@ -45,23 +45,32 @@ cmd_status() {
 }
 
 cmd_wake() {
-  if command -v wakeonlan >/dev/null 2>&1; then
-    wakeonlan -i "$WIN_BROADCAST" "$WIN_MAC"
-  elif command -v wol >/dev/null 2>&1; then
-    wol -i "$WIN_BROADCAST" "$WIN_MAC"
-  else
-    python3 - "$WIN_MAC" "$WIN_BROADCAST" <<'PY'
-import socket, sys
-mac, bcast = sys.argv[1], sys.argv[2]
+  python3 - "$WIN_MAC" "$WIN_BROADCAST" "$WIN_IP" <<'PY'
+import socket, sys, time
+mac = sys.argv[1]
+targets = [sys.argv[2], "255.255.255.255", sys.argv[3]]
 mac_bytes = bytes.fromhex(mac.replace(":", "").replace("-", ""))
 assert len(mac_bytes) == 6
 packet = b"\xff" * 6 + mac_bytes * 16
+ports = (9, 7)
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-s.sendto(packet, (bcast, 9))
+s.settimeout(1)
+sent = []
+for _ in range(3):
+  for host in targets:
+    for port in ports:
+      try:
+        s.sendto(packet, (host, port))
+        sent.append(f"{host}:{port}")
+      except OSError as e:
+        sent.append(f"{host}:{port}!{e}")
+  time.sleep(0.2)
 s.close()
-print(f"WOL sent to {mac} via {bcast}:9")
+print("WOL blast:", ", ".join(dict.fromkeys(sent)))
 PY
+  if command -v wakeonlan >/dev/null 2>&1; then
+    wakeonlan -i "$WIN_BROADCAST" "$WIN_MAC" || true
   fi
 }
 
@@ -70,16 +79,24 @@ cmd_wait_up() {
   cmd_wake || true
   local i=0
   while (( i < timeout )); do
-    if ssh_win "echo SSH_OK" 2>/dev/null; then
+    if ssh -o BatchMode=yes -o ConnectTimeout=2 -o ServerAliveInterval=1 \
+         "$HOST_ALIAS" "echo SSH_OK" 2>/dev/null; then
       echo "up after ${i}s"
       cmd_keepalive || true
       return 0
     fi
-    sleep 3
-    i=$((i + 3))
+    # re-blast WOL every 30s
+    if (( i > 0 && i % 30 == 0 )); then
+      cmd_wake || true
+    fi
+    sleep 2
+    i=$((i + 2))
     echo "waiting ssh... ${i}s"
   done
-  echo "timeout waiting for SSH (check BIOS Wake-on-LAN)" >&2
+  echo "timeout waiting for SSH (check BIOS Wake-on-LAN / press power once)" >&2
+  if command -v osascript >/dev/null 2>&1; then
+    osascript -e 'display notification "Windows WOL 失败，请按一下主机电源键" with title "FactorOS"' || true
+  fi
   return 1
 }
 

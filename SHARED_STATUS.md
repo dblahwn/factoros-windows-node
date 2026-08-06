@@ -10,9 +10,9 @@
 
 ---
 
-**当前状态：** CODE_SYNCED_SLIM / awaiting SMB mount + Cursor Remote
+**当前状态：** READY
 
-**更新时间：** 2026-08-06 ~10:21 CST
+**更新时间：** 2026-08-06 ~11:20 CST
 
 ## 网络与访问
 
@@ -23,7 +23,7 @@
 | SSH | Host `factoros-win` **OK**（`Administrator@192.168.1.114`，公钥） |
 | 开放端口 | OpenSSH / SMB 445 / RDP 3389 |
 | 有线网速 | Ethernet LinkSpeed 1 Gbps |
-| SMB 挂载 | 用户须在 Mac Finder ⌘K 挂载 `smb://192.168.1.114/FactorOS_Data`，账号 Administrator（密码仅在对话框输入，本文不写） |
+| SMB 挂载 | **OK** — Mac `/Volumes/FactorOS_Data` ← `smb://Administrator@192.168.1.114/FactorOS_Data`；双向读写已测通 |
 
 ## Windows 机器
 
@@ -33,16 +33,16 @@
 | 内存 | 16GB RAM |
 | GPU | 无独立显卡 |
 | 磁盘 | C≈90GB 空闲；D≈139GB 空闲；E≈390GB；F≈317GB |
-| Python | 3.12.8 **OK** |
+| Python | 3.12.8 **OK**（系统）；`D:\dev\FactorOS\.venv` **OK**（pandas 3.0.5 / numpy 2.5.1 / pyarrow 25.0.0） |
 | Git | 2.55 |
 
 ## 路径与仓库
 
 | 项 | 值 |
 |---|---|
-| FactorOS_Data 共享 | `D:\FactorOS_Data`（SMB 目标；大数按需挂载到此） |
-| FactorOS 工作树 | `D:\dev\FactorOS` **present**；git HEAD `629654d` on `main`（与 Mac/GitHub 一致） |
-| 瘦拷贝 | **SKIPPED** `data/`（~10G）、`backtest_results/`（~7G）、`archive/` — 代码+脚本足够 Remote SSH 开发 |
+| FactorOS_Data 共享 | `D:\FactorOS_Data` — 已建 `cache/`、`backtest_results/`、`data/` + `README_SLIM.txt` |
+| FactorOS 工作树 | `D:\dev\FactorOS`；git HEAD `629654d` on `main`（与 Mac/GitHub 一致） |
+| 瘦拷贝 | **SKIPPED** `data/`（~10G）、`backtest_results/`（~7G）、`archive/` — 大数请放到 SMB `D:\FactorOS_Data`，勿假定已同步 |
 
 ## 账号与策略（无密码）
 
@@ -58,9 +58,13 @@
 - [x] SSH `factoros-win` 可用
 - [x] `D:\dev\FactorOS` 就位且 HEAD 对齐 Mac/GitHub（`629654d`）
 - [x] 瘦拷贝策略确认（跳过大目录）
-- [x] Python 3.12.8 OK
-- [ ] Mac Finder 挂载 SMB → `smb://192.168.1.114/FactorOS_Data`（大数落到 `D:\FactorOS_Data`）
-- [ ] Mac Cursor Remote SSH → `factoros-win` → 打开 `D:\dev\FactorOS`
-- [ ] 按需安装 Python 依赖
+- [x] Python 3.12.8 + `.venv` 轻量依赖（pandas/numpy/pyarrow）
+- [x] Mac SMB 挂载 `FactorOS_Data` + 双向写测
+- [x] `D:\FactorOS_Data\{cache,backtest_results,data}` 占位
+- [ ] Mac Cursor Remote SSH → `factoros-win` → 打开 `D:\dev\FactorOS`（需用户在 Cursor UI 点一次；CLI 已验证）
+
+## Cursor Remote（用户操作）
+
+见 [CONNECT.md](./CONNECT.md)：Connect to Host `factoros-win` → Open Folder `D:\dev\FactorOS` → 用 `.venv\Scripts\python.exe`。
 
 ---

@@ -12,7 +12,7 @@
 
 **当前状态：** READY（Mac + Windows 双端已复核）
 
-**更新时间：** 2026-08-06 ~11:26 CST（Windows Cursor 复核并对齐）
+**更新时间：** 2026-08-06 ~11:35 CST（Windows 本地独立再检通过；不依赖上次 SHARED_STATUS）
 
 ## 网络与访问
 
@@ -54,6 +54,7 @@
 
 - Windows 上 HTTPS `git clone` 私有仓失败（GCM）；优先用 **Mac→Windows SSH 拷贝**。
 - Win 无法 ping 通 Mac **属预期**；以 Mac→Win SSH/SMB 为准，勿用反向 ping 判死活。
+- `D:\dev\FactorOS` 工作树 **dirty**（~500 路径：多为 `archive/` / `paper_trading_logs/` 删除 + 少量修改；HEAD 仍为 `629654d`）。不阻塞 READY；勿随意 `git reset`/`commit` 除非双端对齐后处理。
 
 ## 下一步清单
 
@@ -78,4 +79,4 @@ Mac confirmed: SSH PASS (`factoros-win` + `Administrator@192.168.1.114` → SSH_
 
 ## Windows confirmed（给 Mac Cursor 粘贴）
 
-Windows confirmed 2026-08-06 ~11:26 CST: `sshd` Running; `D:\FactorOS_Data` OK (`cache/`, `backtest_results/`, `data/`, `README_SLIM.txt`); SMB share `FactorOS_Data` present; `D:\dev\FactorOS` HEAD `629654d` on `main`; `.venv` OK (pandas 3.0.5 / numpy 2.5.1 / pyarrow 25.0.0). Aligns with Mac READY. Remaining user step only: Cursor Remote SSH → `factoros-win` → open `D:\dev\FactorOS` (UI once).
+Windows confirmed 2026-08-06 ~11:35 CST (independent local re-check): `sshd` Running/Automatic, :22 LISTENING, firewall FactorOS SSH Allow, Mac pubkey in both authorized_keys; ESTABLISHED SSH from 192.168.1.106; `D:\FactorOS_Data` + SMB share + local RW OK; `D:\dev\FactorOS` HEAD `629654d` (.venv pandas 3.0.5 / numpy 2.5.1 / pyarrow 25.0.0); IP 192.168.1.114; RDP fDenyTSConnections=0 / 3389 LISTENING; Win→Mac ping FAIL expected; git 2.55 / gh dblahwn / Python 3.12.8. Dirty tree noted (~500 paths, mostly archive deletions) — not blocking READY. Remaining user step only: Cursor Remote SSH → `factoros-win` → open `D:\dev\FactorOS` (UI once).

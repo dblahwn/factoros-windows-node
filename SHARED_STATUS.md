@@ -10,20 +10,21 @@
 
 ---
 
-**当前状态：** READY
+**当前状态：** READY（Mac 已复核 SSH/SMB；可选 RDP 端口通）
 
-**更新时间：** 2026-08-06 ~11:20 CST
+**更新时间：** 2026-08-06 ~11:24 CST（Mac Cursor 复核）
 
 ## 网络与访问
 
 | 项 | 值 |
 |---|---|
-| Mac | 192.168.13.105 |
+| Mac | **192.168.13.105**（Wi‑Fi / en0；网关 192.168.13.1）— IP **未变**，非过期 |
 | Windows | 192.168.1.114（主机名 PC-202407291635） |
-| SSH | Host `factoros-win` **OK**（`Administrator@192.168.1.114`，公钥） |
-| 开放端口 | OpenSSH / SMB 445 / RDP 3389 |
-| 有线网速 | Ethernet LinkSpeed 1 Gbps |
-| SMB 挂载 | **OK** — Mac `/Volumes/FactorOS_Data` ← `smb://Administrator@192.168.1.114/FactorOS_Data`；双向读写已测通 |
+| 双网段 | Mac `192.168.13.x` ↔ Win `192.168.1.x`（跨子网路由可达；见下） |
+| SSH | **PASS** — `ssh factoros-win` 与 `ssh Administrator@192.168.1.114`：`whoami`→`pc-202407291635\administrator`，`SSH_OK` |
+| SMB | **PASS** — `/Volumes/FactorOS_Data` 已挂载；Win `D:\FactorOS_Data` ↔ Mac 卷双向读写测通（2026-08-06） |
+| RDP | **PASS（端口）** — `nc -z -G 3 192.168.1.114 3389` 成功（未做完整登录） |
+| Win→Mac ping | **FAIL（预期）** — `ping -n 2 192.168.13.105` 100% 超时；跨子网 + Mac/防火墙挡 ICMP，**不表示** SSH/SMB 坏 |
 
 ## Windows 机器
 
@@ -52,15 +53,17 @@
 ## 已知问题
 
 - Windows 上 HTTPS `git clone` 私有仓失败（GCM）；优先用 **Mac→Windows SSH 拷贝**。
+- Win 无法 ping 通 Mac **属预期**；以 Mac→Win SSH/SMB 为准，勿用反向 ping 判死活。
 
 ## 下一步清单
 
-- [x] SSH `factoros-win` 可用
+- [x] SSH `factoros-win` 可用（Mac 复核 2026-08-06）
 - [x] `D:\dev\FactorOS` 就位且 HEAD 对齐 Mac/GitHub（`629654d`）
 - [x] 瘦拷贝策略确认（跳过大目录）
 - [x] Python 3.12.8 + `.venv` 轻量依赖（pandas/numpy/pyarrow）
-- [x] Mac SMB 挂载 `FactorOS_Data` + 双向写测
+- [x] Mac SMB 挂载 `FactorOS_Data` + 双向写测（Mac 复核）
 - [x] `D:\FactorOS_Data\{cache,backtest_results,data}` 占位
+- [x] RDP 3389 端口可达（可选；Mac `nc` 复核）
 - [ ] Mac Cursor Remote SSH → `factoros-win` → 打开 `D:\dev\FactorOS`（需用户在 Cursor UI 点一次；CLI 已验证）
 
 ## Cursor Remote（用户操作）
@@ -68,3 +71,7 @@
 见 [CONNECT.md](./CONNECT.md)：Connect to Host `factoros-win` → Open Folder `D:\dev\FactorOS` → 用 `.venv\Scripts\python.exe`。
 
 ---
+
+## Mac confirmed（给 Windows Cursor 粘贴）
+
+Mac confirmed: SSH PASS (`factoros-win` + `Administrator@192.168.1.114` → SSH_OK); SMB PASS (`/Volumes/FactorOS_Data` mounted, bidirectional RW vs `D:\FactorOS_Data`); RDP port 3389 PASS (`nc`); Mac IP still **192.168.13.105** (Wi‑Fi, dual-subnet with Win 192.168.1.114 — IP not stale); Win→Mac ping FAIL is expected (ICMP/firewall), does not block SSH/SMB. Status READY.

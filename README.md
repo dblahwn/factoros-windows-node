@@ -7,6 +7,8 @@
 | 开发控制台 | Mac | WiFi `192.168.13.105` | `dingbolin` |
 | 算力/数据节点 | Windows | 有线 `192.168.1.114` | （你的 Windows 用户名） |
 
+> **双网段：** Mac 可留在 `192.168.13.x`、Win 在 `192.168.1.x`。以 Mac→Win SSH/SMB 为准；Win ping 不通 Mac 通常是防火墙/ICMP，不阻塞协作。
+
 **FactorOS 主仓库**（在 Mac 上开发）：`git@github.com:dblahwn/FactorOS.git`
 
 ---

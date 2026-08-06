@@ -1,14 +1,18 @@
 # Mac 连接 Windows FactorOS 节点
 
-Windows 完成 [README.md](./README.md) 与 `setup.ps1` 后，在 **Mac（dingbolin，约 192.168.13.105）** 上按下列步骤连接 **Windows（192.168.1.114）**。
+Windows 完成 [README.md](./README.md) 与 `setup.ps1` 后，在 **Mac（dingbolin，Wi‑Fi `192.168.13.105`）** 上按下列步骤连接 **Windows（有线 `192.168.1.114`）**。
+
+**双网段事实（2026-08-06 复核）：** Mac 常驻 `192.168.13.x`，Win 在 `192.168.1.x`。Mac→Win 的 **SSH / SMB / RDP:3389 均可**；Win→Mac 的 `ping` 常失败（ICMP / 防火墙），**属预期**，不要用反向 ping 判断节点是否可用。Mac IP `192.168.13.105` 目前 **未变**。
 
 ## 1. 连通性测试
 
 ```bash
 ping -c 3 192.168.1.114
+# 更可靠：直接测 SSH（BatchMode）
+ssh -o BatchMode=yes -o ConnectTimeout=8 factoros-win "whoami & hostname & echo SSH_OK"
 ```
 
-若不通，检查路由器访客隔离、防火墙、子网路由（见 [NETWORK_FIX.md](./NETWORK_FIX.md)）。
+若 ping 不通但 SSH 通，可忽略 ICMP。若 SSH 也不通，检查路由器访客隔离、防火墙、子网路由（见 [NETWORK_FIX.md](./NETWORK_FIX.md)）。
 
 ## 2. SSH
 

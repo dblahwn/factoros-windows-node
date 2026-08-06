@@ -2,6 +2,8 @@
 
 前置已就绪：`Host factoros-win`（`~/.ssh/config`）、公钥登录、`D:\dev\FactorOS` HEAD 对齐。
 
+Mac 侧复核（2026-08-06）：SSH/SMB **PASS**；RDP 3389 端口通；Mac IP 仍为 `192.168.13.105`（与 Win `192.168.1.114` 双网段）。详情见 [SHARED_STATUS.md](./SHARED_STATUS.md)。
+
 ## 三步打开远程仓库
 
 1. Cursor 命令面板 → **Remote-SSH: Connect to Host…** → 选 `factoros-win`

@@ -10,9 +10,9 @@
 
 ---
 
-**当前状态：** READY（Mac 已复核 SSH/SMB；可选 RDP 端口通）
+**当前状态：** READY（Mac + Windows 双端已复核）
 
-**更新时间：** 2026-08-06 ~11:24 CST（Mac Cursor 复核）
+**更新时间：** 2026-08-06 ~11:26 CST（Windows Cursor 复核并对齐）
 
 ## 网络与访问
 
@@ -75,3 +75,7 @@
 ## Mac confirmed（给 Windows Cursor 粘贴）
 
 Mac confirmed: SSH PASS (`factoros-win` + `Administrator@192.168.1.114` → SSH_OK); SMB PASS (`/Volumes/FactorOS_Data` mounted, bidirectional RW vs `D:\FactorOS_Data`); RDP port 3389 PASS (`nc`); Mac IP still **192.168.13.105** (Wi‑Fi, dual-subnet with Win 192.168.1.114 — IP not stale); Win→Mac ping FAIL is expected (ICMP/firewall), does not block SSH/SMB. Status READY.
+
+## Windows confirmed（给 Mac Cursor 粘贴）
+
+Windows confirmed 2026-08-06 ~11:26 CST: `sshd` Running; `D:\FactorOS_Data` OK (`cache/`, `backtest_results/`, `data/`, `README_SLIM.txt`); SMB share `FactorOS_Data` present; `D:\dev\FactorOS` HEAD `629654d` on `main`; `.venv` OK (pandas 3.0.5 / numpy 2.5.1 / pyarrow 25.0.0). Aligns with Mac READY. Remaining user step only: Cursor Remote SSH → `factoros-win` → open `D:\dev\FactorOS` (UI once).

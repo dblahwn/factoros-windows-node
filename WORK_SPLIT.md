@@ -42,9 +42,27 @@
 | 全历史 validate、fleet reval、长跑回测 | **Cloud `compshare-gpu`** |
 | LLM / RFT / 需要 GPU | **Cloud**（家用 Win 无独显） |
 
+## 电源与无头作业（Windows）
+
+Windows 无显示器，当 **磁盘 + 轻量执行机**：
+
+| 动作 | 命令（Mac） |
+|------|-------------|
+| 需要开机 | `factoros_windows_node/mac/win_ctl.sh wait-up`（WOL；需 BIOS 开 Wake-on-LAN） |
+| 下发任务 | `win_ctl.sh submit <id> '<cmd>'` → 结果在 outbox |
+| 取回结果 | `win_ctl.sh fetch <id>` |
+| 保活（重置空闲计时） | `win_ctl.sh keepalive` |
+| 立刻关机 | `win_ctl.sh shutdown` |
+| 空闲 2h | Windows 计划任务 `FactorOS_IdleWatchdog` **自动关机** |
+
+协议详见 [jobs/JOB_PROTOCOL.md](./jobs/JOB_PROTOCOL.md)。重活仍走 Cloud，不要往 Windows inbox 塞 fleet/LLM。
+
+MAC 地址（WOL）：`E0:D5:5E:A3:CC:24` → 广播 `192.168.1.255`。
+
 ## 相关文档
 
 - [SHARED_STATUS.md](./SHARED_STATUS.md) — 双端/三机进度（事实）
 - [CONNECT.md](./CONNECT.md) — Cursor Remote → Windows 速查
 - [MAC_CONNECT.md](./MAC_CONNECT.md) — Mac → Win SSH/SMB
+- [jobs/JOB_PROTOCOL.md](./jobs/JOB_PROTOCOL.md) — inbox/outbox + 看门狗
 - [README.md](./README.md) — Windows 节点配置总览

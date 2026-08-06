@@ -8,6 +8,8 @@
 | 存储 / 轻脚本 | Windows（`factoros-win`） | 有线 `192.168.1.114` | `D:\FactorOS_Data` + `D:\dev\FactorOS`；**非**主力算力 |
 | 重算力 | Cloud `compshare-gpu` | Mac `~/.ssh/config` | 全历史 / fleet / LLM·RFT |
 
+无头作业 / 开关机 / 2h 空闲看门狗：见 [jobs/JOB_PROTOCOL.md](./jobs/JOB_PROTOCOL.md) 与 Mac 侧 `mac/win_ctl.sh`。
+
 > **双网段：** Mac 可留在 `192.168.13.x`、Win 在 `192.168.1.x`。以 Mac→Win SSH/SMB 为准；Win ping 不通 Mac 通常是防火墙/ICMP，不阻塞协作。
 
 **FactorOS 主仓库**（GitHub 为源码真相）：`git@github.com:dblahwn/FactorOS.git`

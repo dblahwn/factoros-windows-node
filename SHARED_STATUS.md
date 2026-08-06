@@ -12,9 +12,9 @@
 
 ---
 
-**当前状态：** READY + 三机分工已文档化（Bugbot 修复已合入 setup/路径约定）
+**当前状态：** HEADLESS_WORKER_READY — inbox/outbox + 2h idle watchdog + Mac win_ctl (WOL/shutdown)
 
-**更新时间：** 2026-08-06 ~11:45 CST
+**更新时间：** 2026-08-06 ~13:00 CST
 
 ## 网络与访问
 
@@ -73,6 +73,9 @@
 - [x] RDP 3389 端口可达（可选；Mac `nc` 复核）
 - [x] Mac Cursor Remote SSH → `factoros-win` → 打开 `D:\dev\FactorOS`（2026-08-06 ~11:33 CST 接通）
 - [x] 三机分工文档 `WORK_SPLIT.md`（Mac / Win 磁盘 / Cloud 算力）
+- [x] 无头作业 inbox/outbox + `FactorOS_IdleWatchdog`（空闲 2h 自动关机）
+- [x] Mac `mac/win_ctl.sh`（wake/wait-up/shutdown/keepalive/submit/fetch）；WOL MAC=`E0:D5:5E:A3:CC:24`
+- [ ] BIOS/网卡 **Wake-on-LAN** 实测（关机后 `win_ctl.sh wait-up`）；跨子网广播可能需路由放行
 
 ## Cursor Remote
 

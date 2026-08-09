@@ -2,13 +2,40 @@
 
 双端对齐用。只写事实，不写密码。分工见 [WORK_SPLIT.md](./WORK_SPLIT.md)。
 
-**当前状态：** HEADLESS_WORKER_READY + **WOL_SELFTEST_PASS** + **COLD_MIGRATE_COPY_DONE**（Mac 原件未删）+ **WATCHDOG_USERSAFE_DEPLOYED**（运行副本与仓逻辑一致；仅 CRLF/LF）+ **CANCEL_PATHS_ACCEPT_PASS** + **SSH_STABILITY**（keepalive + 端口 watchdog，健康检查 ALL PASS）
+**当前状态：** HEADLESS_WORKER_READY + **WOL_SELFTEST_PASS** + **COLD_MIGRATE_COPY_DONE**（Mac 原件未删）+ **WATCHDOG_USERSAFE_DEPLOYED** + **CANCEL_PATHS_ACCEPT_PASS** + **SSH_STABILITY** + **SOFT_CFG_PASS**（核心软件栈已复核配置）
 
-**更新时间：** 2026-08-09 11:37 CST（**Windows Cursor** P0/P1 再冒烟；叠 Mac：SSH OK，看门狗已热更新，无 pending 关机）
+**更新时间：** 2026-08-09 11:45 CST（Mac agent：Windows「软件配置」SSH 落地；叠 11:37 Win Cursor P0/P1 冒烟）
 
 ---
 
-## 三方对齐（Mac agent / Windows Cursor / 用户）— 2026-08-09 11:37 CST
+## 软件配置 checklist（Mac agent SSH @ 2026-08-09 ~11:43–11:45 CST）
+
+> 目标：headless worker + 日常 RDP/Cursor，不装无关软件。报告：`D:\FactorOS_Data\logs\soft_cfg_report.json`
+
+| 项 | 结果 | 备注 |
+|---|---|---|
+| Python 3.12 | **OK** | `C:\Program Files\Python312\python.exe` 3.12.8 |
+| Git | **OK** | 2.55.0；Machine PATH 已含 `Git\bin` + `Git\cmd` |
+| Cursor | **OK** | `...\Local\Programs\cursor\Cursor.exe` |
+| OpenSSH / sshd | **OK** | 客户端在 PATH；`sshd` **Running + Automatic**；failure restart 已设 |
+| Edge | **OK** | 已装；**未**另装 Chrome |
+| winget | **INFO** | 不在 PATH（应用已齐，未强装 App Installer） |
+| `FactorOS_IdleWatchdog` | **OK** | Ready；已从 `D:\dev\factoros-windows-node\jobs` 重装部署 |
+| `FactorOS_SSHWatchdog` | **OK** | Ready；已从 `...\scripts` 重装部署 |
+| `D:\dev\FactorOS\.venv` | **OK** | `import pandas` → 3.0.5 |
+| 电源（插电） | **OK** | 睡眠=从不、休眠=关、显示器=15 分钟；`hibernate off` |
+| 唤醒需登录 | **OK** | `CONSOLELOCK=0`（插电唤醒少摩擦；锁屏策略仍可能存在） |
+| 时区 / 对时 | **OK** | `China Standard Time`；W32Time resync |
+| RDP | **OK** | `fDenyTSConnections=0`；防火墙 Remote Desktop 组已启用 |
+| 节点仓检出 | **OK** | `D:\dev\factoros-windows-node` @ `c6b90c9`（Win Cursor 用） |
+| keepalive | **OK** | 已 touch（softcfg + `win_ctl.sh keepalive`） |
+| Bluetooth「cc jbl」 | **NEED 用户** | BT 服务已 Automatic+Running；**PnP 无 Bluetooth 适配器/设备**（0 radios）→ 需插 USB BT 或 BIOS 开蓝牙后，RDP 进「设置 → 蓝牙」首次配对 |
+
+未做：改装浏览器/游戏、改密码、关机。
+
+---
+
+## 三方对齐（Mac agent / Windows Cursor / 用户）— 2026-08-09 11:45 CST（叠 11:37 冒烟）
 
 > 目标：先对齐「真问题」，再分工修。Mac→`ssh factoros-win` 快照仍有效；**取消通道验收以本机 Windows Cursor 为准**。
 > **唯一真相源：** 本文件（`SHARED_STATUS.md`）+ GitHub `dblahwn/factoros-windows-node`；两边开工前先 `git pull origin main`。
@@ -44,7 +71,7 @@
 
 | 角色 | 状态 / 期望 |
 |---|---|
-| **Mac agent** | SSH OK；看门狗热更新已确认；无 pending 关机；继续 SSH/Cloud；Mac `~/.ssh/config` 加 ServerAlive* |
+| **Mac agent** | SSH OK；**SOFT_CFG_PASS** 已回写；看门狗已重部署；无 pending；继续 SSH/Cloud；Mac `ServerAlive*` 已在 `~/.ssh/config` |
 | **Windows Cursor** | ✅ `git pull`；✅ P0 IdleWatchdog + 取消四路径再冒烟 PASS；✅ P1 SSHWatchdog + health ALL PASS (18) 已回写 |
 | **用户** | RDP 用 Mac「Windows App」；需时长开时 `mac/win_ctl.sh keepalive`；冷数据 purge 需显式确认；有空可再手动点一次询问「否」 |
 
@@ -65,9 +92,11 @@
 
 4. **P3 — 无头体验**：依赖 Windows App RDP；此刻 console Active。
 
-5. **P4 — Bluetooth「cc jbl」**：便利项，Win 本机配对。
+5. **P4 — Bluetooth「cc jbl」**：**服务侧已开**；**缺适配器硬件**（PnP 0 devices）。用户：确认机箱/主板蓝牙或插 USB 适配器 → RDP → 设置 → 蓝牙与设备 → 添加「cc jbl」/JBL。
 
 6. **P5 — Mac 盘紧**：冷 copy **done / bad=0**；**未 purge**（需用户确认）。
+
+7. **P6 — 软件配置**：**SOFT_CFG_PASS**（见上表）；Win 节点仓路径 `D:\dev\factoros-windows-node`。
 
 ### 已经修好 / 可用
 
@@ -77,7 +106,8 @@
 - Idle watchdog **用户安全版运行中**（自 ~11:20；Mac 热更新确认）；无 pending 关机  
 - **取消关机四路径本机再冒烟 PASS**（Windows Cursor 2026-08-09 11:37；未真实断电）  
 - Cursor **Windows 本机运行中**  
-- **SSH_STABILITY** 已进仓并装任务；健康检查 ALL PASS (18)
+- **SSH_STABILITY** 已进仓并装任务；健康检查 ALL PASS (18)  
+- **软件配置 SOFT_CFG_PASS**（电源/时区/RDP/sshd/venv/watchdogs/节点仓检出）
 
 ### 分工：谁做什么
 
@@ -143,7 +173,7 @@
 | 用途 | 路径 |
 |---|---|
 | Win 代码 | `D:\dev\FactorOS` |
-| Win 节点仓 / 作业脚本源 | GitHub `dblahwn/factoros-windows-node`；运行副本常在 `C:\FactorOS\jobs` |
+| Win 节点仓 / 作业脚本源 | 检出 `D:\dev\factoros-windows-node`（GitHub `dblahwn/factoros-windows-node`）；运行副本 `C:\FactorOS\jobs` + `C:\FactorOS\ssh` |
 | Win 数据 | `D:\FactorOS_Data` |
 | Mac 编排 | `~/dev/FactorOS` + `factoros_windows_node/mac/win_ctl.sh` |
 | Cloud | `Host compshare-gpu` |

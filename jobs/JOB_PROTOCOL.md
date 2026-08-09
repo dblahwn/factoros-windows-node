@@ -53,20 +53,27 @@ Mac 经 SMB：`/Volumes/FactorOS_Data/jobs/...`（需已挂载）。
 |------|------|
 | 需要 Windows | Mac：`./mac/win_ctl.sh wake` / `wait-up`（WOL） |
 | 有活要干 | Mac：`submit`；Windows worker 消费 inbox |
-| 想保活 | Mac：`keepalive`；或保持 **Active/活动** 远程桌面 |
+| 想保活 | Mac：`keepalive`；或保持 **Active/活动** 会话；或开着用户程序 |
 | 空闲关机（新逻辑） | 见下 |
 | 立刻关机 | Mac：`shutdown` |
-| 取消关机 | Mac：`cancel-shutdown`；或 Windows：`shutdown /a` / 弹窗点「否」 |
+| 取消关机 | Mac：`cancel-shutdown`；Windows：桌面「取消 FactorOS 关机」/ `C:\FactorOS\jobs\CANCEL_SHUTDOWN.bat` / `shutdown /a` / 弹窗「否」 |
 
 ### 空闲关机怎么判定（避免误关）
 
-1. **你正在用**（`qwinsta` 显示会话 **Active / 活动**，含 Windows App 远程桌面）→ **绝不关机、不弹窗**。
-2. **无 Active 会话** 且 **无 inbox/running 任务** 且 keepalive/活动超过 **2 小时** → **先询问**：
-   - Windows 倒计时关机对话框（约 1 小时）+ 尽量弹窗「要关机吗？」
-   - 点「否」或 `shutdown /a` 或 Mac `keepalive` → 取消并重置计时
-3. **询问后 1 小时无回复** → 才真正关机。
+**任一保活成立 → 不询问、不关机**（并中止已有 pending）：
 
-> 旧逻辑只看 Mac keepalive/任务，所以你在远程桌面用着也会被关——已修。
+1. **活动会话**（`qwinsta` = Active / 活动，含 RDP 或本机控制台）
+2. **用户程序在跑**（SessionId>0 且非系统/壳噪声；或有主窗口的用户进程，如 Chrome/Cursor/Word/微信等）
+3. **inbox/running 任务**，或 keepalive 未超时
+4. **用户已取消**（cancel flag / `CANCEL_SHUTDOWN.bat` / `shutdown /a`）
+
+仅当以上全无，且 keepalive/活动超过 **2 小时** → **先询问**：
+
+- `shutdown /s /t 3600` + pending 文件 + 尽量弹窗；并 `msg` 提示取消路径
+- 「否」/ bat / `shutdown /a` / Mac `cancel-shutdown` / keepalive → 取消并重置
+- **询问后 1 小时无回复** → 才 `/t 60` 强制关机
+
+> 打字/开着软件时不应再弹 2h 关机；若弹窗点不了「否」，双击桌面「取消 FactorOS 关机」。
 
 **关机后再测 WOL：** `./mac/wol_selftest.sh`
 
@@ -74,5 +81,5 @@ Mac 经 SMB：`/Volumes/FactorOS_Data/jobs/...`（需已挂载）。
 
 ## 相关脚本
 
-- Windows：`watchdog.ps1` / `ask_shutdown.ps1` / `install_watchdog.ps1` / `worker_once.ps1`
+- Windows：`watchdog.ps1` / `ask_shutdown.ps1` / `CANCEL_SHUTDOWN.bat` / `install_watchdog.ps1` / `worker_once.ps1`
 - Mac：`mac/win_ctl.sh`、`mac/wol_selftest.sh`

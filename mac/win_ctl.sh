@@ -108,7 +108,9 @@ cmd_shutdown() {
 }
 
 cmd_cancel_shutdown() {
-  ssh_win "cmd /c shutdown /a & del /f /q D:\\FactorOS_Data\\jobs\\shutdown_pending.json 2>nul & del /f /q D:\\FactorOS_Data\\jobs\\shutdown_cancel.flag 2>nul & echo keepalive> D:\\FactorOS_Data\\jobs\\keepalive & echo CANCELLED"
+  # Prefer Windows CANCEL_SHUTDOWN.bat (flag + /a + keepalive); fallback to inline cmd
+  ssh_win "cmd /c if exist C:\\FactorOS\\jobs\\CANCEL_SHUTDOWN.bat (call C:\\FactorOS\\jobs\\CANCEL_SHUTDOWN.bat /nopause) else (shutdown /a & mkdir D:\\FactorOS_Data\\jobs 2>nul & echo cancelled> D:\\FactorOS_Data\\jobs\\shutdown_cancel.flag & del /f /q D:\\FactorOS_Data\\jobs\\shutdown_pending.json 2>nul & echo keepalive> D:\\FactorOS_Data\\jobs\\keepalive & echo CANCELLED)"
+  echo "cancel-shutdown sent"
 }
 
 cmd_keepalive() {

@@ -17,6 +17,7 @@ if (-not $SourceDir) {
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 Copy-Item -Force (Join-Path $SourceDir "watchdog.ps1") (Join-Path $InstallDir "watchdog.ps1")
 Copy-Item -Force (Join-Path $SourceDir "worker_once.ps1") (Join-Path $InstallDir "worker_once.ps1")
+Copy-Item -Force (Join-Path $SourceDir "ask_shutdown.ps1") (Join-Path $InstallDir "ask_shutdown.ps1") -ErrorAction SilentlyContinue
 Copy-Item -Force (Join-Path $SourceDir "JOB_PROTOCOL.md") (Join-Path $InstallDir "JOB_PROTOCOL.md") -ErrorAction SilentlyContinue
 
 # Ensure jobs tree + keepalive

@@ -51,17 +51,28 @@ Mac 经 SMB：`/Volumes/FactorOS_Data/jobs/...`（需已挂载）。
 
 | 动作 | 谁做 |
 |------|------|
-| 需要 Windows | Mac：`./mac/win_ctl.sh wake`（WOL）→ 等 SSH |
-| 有活要干 | Mac：`submit`；Windows `worker` 消费 inbox |
-| 想保活但不投稿 | Mac：`./mac/win_ctl.sh keepalive` |
-| 空闲 2h | Windows **看门狗自动关机** |
-| 立刻关机 | Mac：`./mac/win_ctl.sh shutdown` |
+| 需要 Windows | Mac：`./mac/win_ctl.sh wake` / `wait-up`（WOL） |
+| 有活要干 | Mac：`submit`；Windows worker 消费 inbox |
+| 想保活 | Mac：`keepalive`；或保持 **Active/活动** 远程桌面 |
+| 空闲关机（新逻辑） | 见下 |
+| 立刻关机 | Mac：`shutdown` |
+| 取消关机 | Mac：`cancel-shutdown`；或 Windows：`shutdown /a` / 弹窗点「否」 |
 
-**关机后再测 WOL（全自动）：** `./mac/wol_selftest.sh`（关→等死→唤醒→验 SSH，不用你盯）。
+### 空闲关机怎么判定（避免误关）
+
+1. **你正在用**（`qwinsta` 显示会话 **Active / 活动**，含 Windows App 远程桌面）→ **绝不关机、不弹窗**。
+2. **无 Active 会话** 且 **无 inbox/running 任务** 且 keepalive/活动超过 **2 小时** → **先询问**：
+   - Windows 倒计时关机对话框（约 1 小时）+ 尽量弹窗「要关机吗？」
+   - 点「否」或 `shutdown /a` 或 Mac `keepalive` → 取消并重置计时
+3. **询问后 1 小时无回复** → 才真正关机。
+
+> 旧逻辑只看 Mac keepalive/任务，所以你在远程桌面用着也会被关——已修。
+
+**关机后再测 WOL：** `./mac/wol_selftest.sh`
 
 重活仍走 Cloud（`compshare-gpu`），不要往 Windows inbox 塞重型 fleet/LLM。
 
 ## 相关脚本
 
-- Windows：`watchdog.ps1` / `install_watchdog.ps1` / `worker_once.ps1`
+- Windows：`watchdog.ps1` / `ask_shutdown.ps1` / `install_watchdog.ps1` / `worker_once.ps1`
 - Mac：`mac/win_ctl.sh`、`mac/wol_selftest.sh`

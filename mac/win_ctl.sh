@@ -16,6 +16,7 @@ Usage: win_ctl.sh <command> [args]
   wake         Wake-on-LAN magic packet (BIOS/NIC WOL must be on)
   wait-up      wake + wait until SSH works (default 180s)
   shutdown     SSH shutdown /s /t 10
+  cancel-shutdown  Abort pending watchdog shutdown (shutdown /a)
   keepalive    Touch jobs/keepalive (resets 2h idle timer)
   submit <id> <cmd> [cwd] [timeout_sec]
   fetch <id>   Print outbox/failed result.json
@@ -27,7 +28,8 @@ EOF
 }
 
 ssh_win() {
-  ssh -o BatchMode=yes -o ConnectTimeout=8 "$HOST_ALIAS" "$@"
+  # -n: never steal caller stdin (critical when invoked from migrate while-read loops)
+  ssh -n -o BatchMode=yes -o ConnectTimeout=8 "$HOST_ALIAS" "$@"
 }
 
 cmd_status() {
@@ -105,6 +107,10 @@ cmd_shutdown() {
   echo "shutdown issued (/t 10)"
 }
 
+cmd_cancel_shutdown() {
+  ssh_win "cmd /c shutdown /a & del /f /q D:\\FactorOS_Data\\jobs\\shutdown_pending.json 2>nul & del /f /q D:\\FactorOS_Data\\jobs\\shutdown_cancel.flag 2>nul & echo keepalive> D:\\FactorOS_Data\\jobs\\keepalive & echo CANCELLED"
+}
+
 cmd_keepalive() {
   ssh_win "cmd /c echo keepalive> D:\\FactorOS_Data\\jobs\\keepalive"
   echo "keepalive touched"
@@ -180,8 +186,8 @@ main() {
     wake) cmd_wake "$@" ;;
     wait-up) cmd_wait_up "$@" ;;
     shutdown) cmd_shutdown "$@" ;;
-    keepalive) cmd_keepalive "$@" ;;
-    submit) cmd_submit "$@" ;;
+    cancel-shutdown) cmd_cancel_shutdown "$@" ;;
+    keepalive) cmd_keepalive "$@" ;;    submit) cmd_submit "$@" ;;
     fetch) cmd_fetch "$@" ;;
     worker) cmd_worker "$@" ;;
     demo) cmd_demo "$@" ;;

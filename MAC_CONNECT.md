@@ -34,9 +34,12 @@ Host factoros-win
     User YOUR_WINDOWS_USER
     IdentityFile ~/.ssh/id_ed25519
     IdentitiesOnly yes
+    ServerAliveInterval 30
+    ServerAliveCountMax 5
+    TCPKeepAlive yes
 ```
 
-之后：
+长连接稳定性（watchdog、坑点、审计）见 [SSH_STABILITY.md](./SSH_STABILITY.md)。之后：
 
 ```bash
 ssh factoros-win

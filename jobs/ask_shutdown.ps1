@@ -28,7 +28,8 @@ function Invoke-CancelShutdown {
 
 Add-Type -AssemblyName System.Windows.Forms | Out-Null
 $msg = @(
-  "电脑疑似空闲约 2 小时（无任务、无活动会话、无明显用户程序）。",
+  "电脑疑似空闲约 2 小时（无任务、无 RDP、无近期键鼠输入）。",
+  "后台残留 Cursor/explorer 不会阻止自动关机。",
   "",
   "要现在关机吗？",
   "",

@@ -78,4 +78,13 @@ Write-Output "Idle shutdown: 2 hours (see watchdog.ps1 -IdleHours)"
 # Abort any pending shutdown from older logic, then kick once
 try { & shutdown.exe /a 2>$null | Out-Null } catch {}
 Remove-Item -Force (Join-Path $JobsRoot "shutdown_pending.json") -ErrorAction SilentlyContinue
+# Clear inflated last_activity from older "apps=busy forever" builds so overnight
+# idle can start cleanly after deploy (keepalive still respected by watchdog).
+$statePath = Join-Path $JobsRoot "watchdog_state.json"
+$stale = [ordered]@{
+  last_activity = (Get-Date).AddHours(-3).ToString("o")
+  note          = "reset_on_install_overnight_fix"
+}
+($stale | ConvertTo-Json) | Set-Content -Path $statePath -Encoding utf8
+Write-Output "Reset watchdog_state.json last_activity to -3h (keepalive still wins if fresher)"
 & powershell -NoProfile -ExecutionPolicy Bypass -File $watchdog

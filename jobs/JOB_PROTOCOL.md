@@ -53,27 +53,33 @@ Mac 经 SMB：`/Volumes/FactorOS_Data/jobs/...`（需已挂载）。
 |------|------|
 | 需要 Windows | Mac：`./mac/win_ctl.sh wake` / `wait-up`（WOL） |
 | 有活要干 | Mac：`submit`；Windows worker 消费 inbox |
-| 想保活 | Mac：`keepalive`；或保持 **Active/活动** 会话；或开着用户程序 |
-| 空闲关机（新逻辑） | 见下 |
+| 想保活 | Mac：`keepalive`；或 **正在 RDP**；或近期有键鼠输入 |
+| 空闲关机 | 见下（过夜无头必须能关） |
 | 立刻关机 | Mac：`shutdown` |
 | 取消关机 | Mac：`cancel-shutdown`；Windows：桌面「取消 FactorOS 关机」/ `C:\FactorOS\jobs\CANCEL_SHUTDOWN.bat` / `shutdown /a` / 弹窗「否」 |
 
-### 空闲关机怎么判定（避免误关）
+### 空闲关机怎么判定（过夜无头优先）
 
-**任一保活成立 → 不询问、不关机**（并中止已有 pending）：
+**真正保活（任一成立 → 不询问、不关机，并中止 pending）**：
 
-1. **活动会话**（`qwinsta` = Active / 活动，含 RDP 或本机控制台）
-2. **用户程序在跑**（SessionId>0 且非系统/壳噪声；或有主窗口的用户进程，如 Chrome/Cursor/Word/微信等）
-3. **inbox/running 任务**，或 keepalive 未超时
+1. **活跃 RDP**（`rdp-tcp#N` Active / 活动；忽略 `rdp-tcp Listen`）
+2. **近期输入**（`quser` IDLE TIME &lt; 2h）— 正在打字/操作
+3. **inbox/running 任务**，或 keepalive mtime 未超过 2h
 4. **用户已取消**（cancel flag / `CANCEL_SHUTDOWN.bat` / `shutdown /a`）
 
-仅当以上全无，且 keepalive/活动超过 **2 小时** → **先询问**：
+**明确不保活（过夜必须能关）**：
 
-- `shutdown /s /t 3600` + pending 文件 + 尽量弹窗；并 `msg` 提示取消路径
+- 仅残留 **Cursor / explorer** 等后台进程、无近期输入
+- 控制台名义上仍 Active，但 `quser` 空闲已 ≥2h（ghost session）
+- 旧逻辑每 5 分钟因「有用户程序」刷新 `last_activity` → 已废除
+
+仅当以上保活全无，且空闲 ≥ **2 小时** → **先询问**：
+
+- `shutdown /s /t 3600` + pending + 尽量弹窗 / `msg`
 - 「否」/ bat / `shutdown /a` / Mac `cancel-shutdown` / keepalive → 取消并重置
-- **询问后 1 小时无回复** → 才 `/t 60` 强制关机
+- **询问后 1 小时无回复** → `/t 60` 强制关机（无头无人点弹窗也会关）
 
-> 打字/开着软件时不应再弹 2h 关机；若弹窗点不了「否」，双击桌面「取消 FactorOS 关机」。
+> 正在 RDP/打字时不应误关；过夜离开且未 `keepalive` 时应自动关。取消：桌面「取消 FactorOS 关机」。
 
 **关机后再测 WOL：** `./mac/wol_selftest.sh`
 

@@ -2,9 +2,56 @@
 
 双端对齐用。只写事实，不写密码。分工见 [WORK_SPLIT.md](./WORK_SPLIT.md)。
 
-**当前状态：** HEADLESS_WORKER_READY + **WOL_SELFTEST_PASS** + **COLD_MIGRATE_COPY_DONE**（Mac 原件未删）+ **WATCHDOG_USERSAFE_DEPLOYED** + **CANCEL_PATHS_ACCEPT_PASS** + **SSH_STABILITY** + **SOFT_CFG_PASS**（核心软件栈已复核配置）
+**当前状态：** HEADLESS_WORKER_READY + WOL_SELFTEST_PASS + COLD_MIGRATE_COPY_DONE + SSH_STABILITY + SOFT_CFG_PASS + **WATCHDOG_OVERNIGHT_FIX_IN_REPO**（待下次开机部署）
 
-**更新时间：** 2026-08-09 11:45 CST（Mac agent：Windows「软件配置」SSH 落地；叠 11:37 Win Cursor P0/P1 冒烟）
+**更新时间：** 2026-08-10 09:55 CST（Mac agent：过夜未关机根因已修于仓；部署因本机 SSH/关机窗口未完成）
+
+---
+
+## P0 — 过夜空闲未关机（2026-08-10）
+
+> 用户澄清：「看门狗没用」= **整夜空闲不自动关**，不是误杀。
+
+### 根因（代码级，旧 usersafe 版）
+
+1. `Test-UserAppsBusy` 把 SessionId>0 有主窗口的进程（含 **Cursor**）当成 forever-busy  
+2. 每次 tick 若 busy → `Touch-Activity` → `last_activity` 每 5 分钟刷新 → **idle 永远到不了 2h**  
+3. 控制台名义 Active / ghost session 也会走同一条 stay-on 路径  
+4. 结果：人已离开、无 RDP、无 jobs，机器仍整晚开着
+
+### 新逻辑（仓内已改，见 `jobs/watchdog.ps1`）
+
+| 保活（阻止询问/关机） | 不保活（过夜应能关） |
+|---|---|
+| 活跃 RDP（`rdp-tcp#N` Active；忽略 Listen） | 仅残留 Cursor/explorer 等后台进程 |
+| `quser` IDLE TIME &lt; 2h（近期键鼠） | 控制台 Active 但输入空闲 ≥2h |
+| inbox/running / keepalive&lt;2h / cancel | 旧「有用户程序就 Touch-Activity」已删除 |
+
+流程仍是：**空闲 ≥2h → 询问（`/t 3600`）→ 1h 无应答 → 强制关**。无头无人点弹窗也会在 ask 超时后关。
+
+### 下次开机必须部署（Mac 或 Win Cursor）
+
+```powershell
+# 在 Win 上（elevated），从节点仓 jobs 安装运行副本 + 任务
+cd D:\dev\factoros-windows-node   # 或先 git pull / 从 Mac scp
+powershell -NoProfile -ExecutionPolicy Bypass -File .\jobs\install_watchdog.ps1
+# install 会：复制到 C:\FactorOS\jobs\、重装 FactorOS_IdleWatchdog(SYSTEM/5min)、
+# 重置 watchdog_state last_activity 为 -3h（避免旧 inflated 状态）
+```
+
+Mac 若 SSH 可用：
+
+```bash
+scp factoros_windows_node/jobs/{watchdog.ps1,ask_shutdown.ps1,CANCEL_SHUTDOWN.bat,install_watchdog.ps1} factoros-win:'C:/FactorOS/jobs/'
+ssh factoros-win 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\FactorOS\jobs\install_watchdog.ps1'
+```
+
+验收：无 RDP + 无 keepalive + 无 jobs 时，日志应出现 `no_recent_presence` / `session input idle … ignore last_activity`，而不是 `userApps busy … Cursor`。
+
+### 电源（本轮 Mac 侧）
+
+- 2026-08-10 ~09:49：曾短暂 SSH UP，随后对 `192.168.1.114` ping 丢、SSH 在 kex 被对端关闭（疑似并行关机/sshd 半死）  
+- TCP 22/3389 仍曾短暂可连但无 banner → **未能热部署**；以本文件 + 仓内脚本为准，**下次 boot 先 deploy 再干活**
 
 ---
 
@@ -137,7 +184,7 @@
 | SSH 自愈 | 计划任务 `FactorOS_SSHWatchdog` 每 2 分钟；日志 `D:\FactorOS_Data\logs\ssh_watchdog.log` |
 | SSH 审计 | `scripts\ssh-health-check.ps1`（PASS/FAIL review mode） |
 | WOL | NIC `WakeOnMagicPacket=Enabled`；自检 `mac/wol_selftest.sh` **PASS** |
-| 空闲关机 | `FactorOS_IdleWatchdog` 每 5 分钟；**有 Active 会话 / 用户程序 / jobs / keepalive → 不开机关**；仅真正空闲 ≥2h → **询问**；1h 无应答再关；取消：弹窗「否」/`shutdown /a`/`CANCEL_SHUTDOWN.bat`/keepalive（**本机再冒烟 PASS @11:37**） |
+| 空闲关机 | `FactorOS_IdleWatchdog` 每 5 分钟；**活跃 RDP / 近期键鼠 / jobs / keepalive → 不开机关**；残留 Cursor 不挡；空闲 ≥2h → **询问**；1h 无应答再关。**2026-08-10 过夜修复在仓，待 boot 部署** |
 | Mac 控制 | `mac/win_ctl.sh`（wake/wait-up/shutdown/keepalive/submit/fetch） |
 | 自动复检 | LaunchAgent `com.factoros.wol-selftest`（周检） |
 | 作业目录 | `D:\FactorOS_Data\jobs\{inbox,running,outbox,failed}` |
